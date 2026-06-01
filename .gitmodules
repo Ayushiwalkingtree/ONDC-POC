@@ -1,0 +1,15 @@
+[submodule "fis-specs"]
+	path = fis-specs
+	url = https://github.com/ONDC-Official/ONDC-FIS-Specifications.git
+	branch = draft-FIS14-enhancements
+	ignore = dirty
+[submodule "protocol-specs"]
+	path = protocol-specs
+	url = https://github.com/ONDC-Official/ONDC-Protocol-Specs.git
+	branch = master
+	ignore = dirty
+[submodule "seller-app"]
+	path = seller-app
+	url = https://github.com/ONDC-Official/seller-app.git
+	branch = master
+	ignore = dirty
