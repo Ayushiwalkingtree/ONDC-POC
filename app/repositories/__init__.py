@@ -1,5 +1,7 @@
-from app.repositories.in_memory_transaction_repository import default_transaction_repository
+from app.services.file_storage_service import file_storage_service
 from app.repositories.transaction_repository import DuplicateMessageError, TransactionRepository
+
+default_transaction_repository = file_storage_service
 
 __all__ = [
     "DuplicateMessageError",

@@ -1,8 +1,8 @@
-# ONDC Buyer NP Architecture
+﻿# ONDC Buyer NP Architecture
 
 ## Purpose
 
-This FastAPI application is now structured as an ONDC Buyer NP/BAP proof of concept for Mutual Funds using `ONDC:FIS14`.
+This FastAPI application is structured as an ONDC Buyer NP/BAP implementation for Mutual Funds using `ONDC:FIS14`.
 
 Buyer command endpoints accept validated BAP protocol requests, persist protocol events, and return ACK. Callback endpoints receive BPP `on_*` responses, validate the same FIS14 envelope rules, persist the callback event, and return ACK.
 
@@ -45,7 +45,7 @@ flowchart TD
     Signing[SigningService]
     Verify[VerificationService]
     Registry[RegistryService]
-    BPP[BPP / Seller NP]
+    BPP[Counterparty NP / BPP]
     DB[(Future persistent DB)]
 
     Client --> Routes
@@ -106,7 +106,7 @@ The protocol validation service enforces endpoint/action matching, such as `POST
 
 ## Repository Boundary
 
-The app depends on `TransactionRepository`, currently backed by `InMemoryTransactionRepository` for local development. The repository prevents duplicate `message_id` values and can be replaced by a database-backed implementation for UAT.
+The app depends on `TransactionRepository`, currently backed by `FileStorageService` for local development and UAT evidence capture. The repository prevents duplicate `message_id` values and can be replaced by a database-backed implementation for production.
 
 ## Signing and Registry
 
@@ -122,6 +122,7 @@ Required configuration:
 
 - `SUBSCRIBER_ID`
 - `UNIQUE_KEY_ID`
-- `SIGNING_PRIVATE_KEY_PATH`
+- `SIGNING_PRIVATE_KEY`
 - `ONDC_REGISTRY_URL`
 - `REQUIRE_ONDC_AUTH=true` for inbound verification enforcement
+

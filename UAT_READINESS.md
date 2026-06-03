@@ -1,4 +1,4 @@
-# UAT Readiness
+﻿# UAT Readiness
 
 ## Current Status
 
@@ -11,7 +11,7 @@ The FastAPI application exposes Buyer NP command and callback receiver APIs for 
 | Subscriber ID required | Required | Obtain Buyer NP/BAP subscriber ID through ONDC onboarding. Configure `SUBSCRIBER_ID` and `BAP_ID`. |
 | Registry required | Required | Configure `ONDC_REGISTRY_URL` for staging/UAT registry lookup. |
 | Public key required | Required | Register the signing public key in the ONDC registry with the correct `unique_key_id`. |
-| Private key required | Required | Store the Ed25519 private key securely and configure `SIGNING_PRIVATE_KEY_PATH` or a production secret manager adapter. |
+| Private key required | Required | Store the Ed25519 private key securely and configure `SIGNING_PRIVATE_KEY` or a production secret manager adapter. |
 | Signing required | Required | Implement `SigningService.build_authorization_header` using ONDC canonical signing requirements. No fake crypto is present. |
 | Verification required | Required | Implement `VerificationService.verify_headers`; enable `REQUIRE_ONDC_AUTH=true` for inbound callbacks. |
 
@@ -25,7 +25,7 @@ The FastAPI application exposes Buyer NP command and callback receiver APIs for 
 - `SUBSCRIBER_ID` is set.
 - `UNIQUE_KEY_ID` matches the registry key.
 - `ONDC_REGISTRY_URL` points to the UAT/staging registry.
-- `SIGNING_PRIVATE_KEY_PATH` or equivalent secure key provider is configured.
+- `SIGNING_PRIVATE_KEY` or equivalent secure key provider is configured.
 - `REQUIRE_ONDC_AUTH=true` once verification is implemented.
 
 ## UAT Entry Criteria
@@ -46,3 +46,4 @@ The FastAPI application exposes Buyer NP command and callback receiver APIs for 
 5. `status -> on_status` works for order polling.
 6. `on_update` handles payment and fulfillment updates.
 7. Error/NACK behavior is validated for invalid protocol requests.
+

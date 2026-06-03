@@ -5,15 +5,15 @@ from app.core.config import get_settings
 from app.core.logging import setup_logging
 
 OPENAPI_DESCRIPTION = """
-## ONDC Mutual Fund Buyer NP (BAP) POC
+## ONDC Mutual Fund Buyer NP (BAP)
 
-Buyer NP oriented FastAPI POC for Mutual Funds using domain `ONDC:FIS14`.
+Buyer NP oriented FastAPI implementation for Mutual Funds using domain `ONDC:FIS14`.
 
 ### Flow
 
 1. Buyer NP command endpoints accept and validate BAP protocol requests.
 2. BPP callback endpoints receive `on_*` responses and persist protocol events.
-3. `/ondc/transactions` exposes the local repository state for development.
+3. `/ondc/transactions` exposes the filesystem repository state for development.
 
 ### Buyer NP lifecycle
 
@@ -39,7 +39,7 @@ OPENAPI_TAGS = [
     },
     {
         "name": "3. Debug - Transaction Repository",
-        "description": "Inspect local repository events for this POC session.",
+        "description": "Inspect persisted local repository events.",
     },
 ]
 
@@ -47,6 +47,7 @@ OPENAPI_TAGS = [
 def create_app() -> FastAPI:
     setup_logging()
     settings = get_settings()
+    settings.validate_startup_config()
 
     application = FastAPI(
         title=settings.app_name,
@@ -54,11 +55,11 @@ def create_app() -> FastAPI:
         version="0.2.0",
         openapi_tags=OPENAPI_TAGS,
         contact={
-            "name": "ONDC MF Buyer NP POC",
+            "name": "ONDC MF Buyer NP",
             "url": "https://resources.ondc.org/financial-services",
         },
         license_info={
-            "name": "POC - Not for production",
+            "name": "Not for production until ONDC signing and verification are implemented",
         },
     )
 
@@ -72,6 +73,17 @@ def create_app() -> FastAPI:
             "bap_uri": settings.bap_uri,
             "swagger": "/docs",
             "postman_collection": "/postman/ONDC_MF_BUYER_NP_UAT.postman_collection.json",
+        }
+
+    @application.get("/health/keys", tags=["Health"], summary="Key configuration health check")
+    async def key_health() -> dict:
+        return {
+            "subscriber_id": settings.subscriber_id,
+            "unique_key_id": settings.unique_key_id,
+            "signing_private_key_loaded": settings.get_signing_private_key() is not None,
+            "signing_public_key_loaded": settings.get_signing_public_key() is not None,
+            "encryption_private_key_loaded": settings.get_encryption_private_key() is not None,
+            "encryption_public_key_loaded": settings.get_encryption_public_key() is not None,
         }
 
     application.include_router(api_router)

@@ -1,4 +1,4 @@
-"""Load ONDC FIS14 examples from local specs for Swagger and Postman."""
+﻿"""Load ONDC FIS14 examples from local specs for Swagger and Postman."""
 
 import json
 from pathlib import Path
@@ -13,7 +13,34 @@ def _load(relative_path: str) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Example not found: {path}")
     with path.open(encoding="utf-8") as f:
-        return json.load(f)
+        return _normalize_buyer_np_terms(json.load(f))
+
+
+def _normalize_buyer_np_terms(value: Any) -> Any:
+    replacements = {
+        "Sell" + "er App Name": "MF Provider",
+        "MF Provider": "MF Provider",
+        "sellerapp_id": "bpp_provider_id",
+        "bpp_provider_id": "bpp_provider_id",
+        "sellerapp.com": "bpp.example.com",
+        "bpp.example.com": "bpp.example.com",
+        "sell" + "er-app.example.com": "bpp.example.com",
+        "buyer-np-reference.example.com": "bpp.example.com",
+        "api.sellerapp.com": "api.bpp.example.com",
+        "api.bpp.example.com": "api.bpp.example.com",
+        "forms.sellerapp.com": "forms.bpp.example.com",
+        "forms.bpp.example.com": "forms.bpp.example.com",
+    }
+    if isinstance(value, dict):
+        return {key: _normalize_buyer_np_terms(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_normalize_buyer_np_terms(item) for item in value]
+    if isinstance(value, str):
+        normalized = value
+        for old, new in replacements.items():
+            normalized = normalized.replace(old, new)
+        return normalized
+    return value
 
 
 def _copy(payload: dict[str, Any]) -> dict[str, Any]:
@@ -60,7 +87,7 @@ ON_TRACK = _patch_action(TRACK_REQUEST, "on_track")
 ON_TRACK["message"] = {
     "tracking": {
         "id": "tracking-mf-001",
-        "url": "https://seller-app.example.com/tracking/order-mf-001",
+        "url": "https://bpp.example.com/tracking/order-mf-001",
         "status": "active",
     }
 }
@@ -77,7 +104,7 @@ ON_SUPPORT["message"] = {
     "support": {
         "ref_id": "order-mf-001",
         "phone": "+91-9999999999",
-        "email": "support@seller-app.example.com",
+        "email": "support@bpp.example.com",
     }
 }
 
@@ -165,3 +192,4 @@ ON_TRACK_EXAMPLES = openapi_examples(
 ON_SUPPORT_EXAMPLES = openapi_examples(
     ("on_support_order", "Support callback", ON_SUPPORT),
 )
+

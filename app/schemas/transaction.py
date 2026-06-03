@@ -10,7 +10,7 @@ class TransactionEventRecord(BaseModel):
     transaction_id: str
     message_id: str
     action: str
-    direction: Literal["command", "callback"]
+    direction: Literal["command", "response", "callback"]
     payload: dict[str, Any]
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

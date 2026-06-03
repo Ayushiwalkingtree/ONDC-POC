@@ -16,15 +16,15 @@
     "message_id": "bb579fb8-cb82-4824-be12-fcbc405b6608-confirm-lumpsum",
     "version": "2.0.0",
     "ttl": "PT10M",
-    "bpp_id": "api.sellerapp.com",
-    "bpp_uri": "https://api.sellerapp.com/ondc",
+    "bpp_id": "api.bpp.example.com",
+    "bpp_uri": "https://api.bpp.example.com/ondc",
     "action": "confirm"
   },
   "message": {
     "order": {
       "id": "mfpp_213adf123af",
       "provider": {
-        "id": "sellerapp_id"
+        "id": "bpp_provider_id"
       },
       "items": [
         {
@@ -153,7 +153,7 @@
                 "name": "Static Terms (Transaction Level)",
                 "code": "STATIC_TERMS"
               },
-              "value": "https://sellerapp.com/legal/ondc:fis14/static_terms?v=0.1"
+              "value": "https://bpp.example.com/legal/ondc:fis14/static_terms?v=0.1"
             },
             {
               "descriptor": {

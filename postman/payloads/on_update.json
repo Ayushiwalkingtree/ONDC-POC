@@ -16,8 +16,8 @@
     "message_id": "bb579fb8-cb82-4824-be12-fcbc405b6608-on-update-payment-on_update",
     "version": "2.0.0",
     "ttl": "PT10M",
-    "bpp_id": "api.sellerapp.com",
-    "bpp_uri": "https://api.sellerapp.com/ondc",
+    "bpp_id": "api.bpp.example.com",
+    "bpp_uri": "https://api.bpp.example.com/ondc",
     "action": "on_update"
   },
   "message": {
@@ -25,9 +25,9 @@
       "id": "mfp_213adf123af",
       "status": "ACCEPTED",
       "provider": {
-        "id": "sellerapp_id",
+        "id": "bpp_provider_id",
         "descriptor": {
-          "name": "Seller App Name"
+          "name": "MF Provider"
         }
       },
       "items": [
@@ -66,7 +66,7 @@
                     "name": "Consumer Terms & Conditions",
                     "code": "CONSUMER_TNC"
                   },
-                  "value": "https://sellerapp.com/legal/ondc:fis14/consumer_tnc.html"
+                  "value": "https://bpp.example.com/legal/ondc:fis14/consumer_tnc.html"
                 }
               ]
             },
@@ -382,7 +382,7 @@
                 "name": "Static Terms (Transaction Level)",
                 "code": "STATIC_TERMS"
               },
-              "value": "https://sellerapp.com/legal/ondc:fis14/static_terms?v=0.1"
+              "value": "https://bpp.example.com/legal/ondc:fis14/static_terms?v=0.1"
             },
             {
               "descriptor": {
@@ -433,7 +433,7 @@
         {
           "reason_required": true,
           "external_ref": {
-            "url": "https://api.sellerapp.com/cterms?id=214werw3w4",
+            "url": "https://api.bpp.example.com/cterms?id=214werw3w4",
             "mimetype": "text/html"
           }
         }

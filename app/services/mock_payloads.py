@@ -1,4 +1,4 @@
-"""Mock ONDC FIS14 (Mutual Funds) payloads derived from ONDC-FIS-Specifications examples."""
+"""Local ONDC FIS14 (Mutual Funds) payloads derived from specification examples."""
 
 MOCK_SCHEMES = [
     {
@@ -41,11 +41,11 @@ MOCK_SCHEMES = [
 def mock_on_search_catalog() -> dict:
     return {
         "catalog": {
-            "descriptor": {"name": "MF Seller POC"},
+            "descriptor": {"name": "MF Provider Catalog"},
             "providers": [
                 {
                     "id": "bpp_provider_id",
-                    "descriptor": {"name": "Mutual Fund BPP Provider POC"},
+                    "descriptor": {"name": "Mutual Fund Provider"},
                     "categories": [
                         {"id": "0", "descriptor": {"name": "Mutual Funds", "code": "MUTUAL_FUNDS"}},
                         {"id": "1", "descriptor": {"name": "Open Ended", "code": "OPEN_ENDED"}, "parent_category_id": "0"},
@@ -171,7 +171,7 @@ def mock_on_track(order_id: str = "order-mf-001") -> dict:
     return {
         "tracking": {
             "id": f"track-{order_id}",
-            "url": f"https://seller-app.example.com/tracking/{order_id}",
+            "url": f"https://bpp.example.com/tracking/{order_id}",
             "status": "active",
         }
     }
@@ -182,6 +182,6 @@ def mock_on_support(ref_id: str = "order-mf-001") -> dict:
         "support": {
             "ref_id": ref_id,
             "phone": "+91-9999999999",
-            "email": "support@seller-app.example.com",
+            "email": "support@bpp.example.com",
         }
     }

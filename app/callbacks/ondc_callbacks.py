@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Request
 
 from app.schemas.examples import (
     ON_CANCEL_EXAMPLES,
@@ -28,10 +28,11 @@ router = APIRouter(prefix="/ondc", tags=["2. Buyer NP Callback Receivers"])
     response_model=ONDCAckResponse,
 )
 async def on_search(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_SEARCH_EXAMPLES),
 ) -> ONDCAckResponse:
     logger.info("Received on_search callback | txn=%s", request.context.transaction_id)
-    return await buyer_np_service.handle_callback(request, "on_search")
+    return await buyer_np_service.handle_callback(request, "on_search", http_request.headers, await http_request.body())
 
 
 @router.post(
@@ -41,10 +42,11 @@ async def on_search(
     response_model=ONDCAckResponse,
 )
 async def on_select(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_SELECT_EXAMPLES),
 ) -> ONDCAckResponse:
     logger.info("Received on_select callback | txn=%s", request.context.transaction_id)
-    return await buyer_np_service.handle_callback(request, "on_select")
+    return await buyer_np_service.handle_callback(request, "on_select", http_request.headers, await http_request.body())
 
 
 @router.post(
@@ -54,10 +56,11 @@ async def on_select(
     response_model=ONDCAckResponse,
 )
 async def on_init(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_INIT_EXAMPLES),
 ) -> ONDCAckResponse:
     logger.info("Received on_init callback | txn=%s", request.context.transaction_id)
-    return await buyer_np_service.handle_callback(request, "on_init")
+    return await buyer_np_service.handle_callback(request, "on_init", http_request.headers, await http_request.body())
 
 
 @router.post(
@@ -67,10 +70,11 @@ async def on_init(
     response_model=ONDCAckResponse,
 )
 async def on_confirm(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_CONFIRM_EXAMPLES),
 ) -> ONDCAckResponse:
     logger.info("Received on_confirm callback | txn=%s", request.context.transaction_id)
-    return await buyer_np_service.handle_callback(request, "on_confirm")
+    return await buyer_np_service.handle_callback(request, "on_confirm", http_request.headers, await http_request.body())
 
 
 @router.post(
@@ -80,10 +84,11 @@ async def on_confirm(
     response_model=ONDCAckResponse,
 )
 async def on_status(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_STATUS_EXAMPLES),
 ) -> ONDCAckResponse:
     logger.info("Received on_status callback | txn=%s", request.context.transaction_id)
-    return await buyer_np_service.handle_callback(request, "on_status")
+    return await buyer_np_service.handle_callback(request, "on_status", http_request.headers, await http_request.body())
 
 
 @router.post(
@@ -93,9 +98,10 @@ async def on_status(
     response_model=ONDCAckResponse,
 )
 async def on_update(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_UPDATE_EXAMPLES),
 ) -> ONDCAckResponse:
-    return await buyer_np_service.handle_callback(request, "on_update")
+    return await buyer_np_service.handle_callback(request, "on_update", http_request.headers, await http_request.body())
 
 
 @router.post(
@@ -105,9 +111,10 @@ async def on_update(
     response_model=ONDCAckResponse,
 )
 async def on_cancel(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_CANCEL_EXAMPLES),
 ) -> ONDCAckResponse:
-    return await buyer_np_service.handle_callback(request, "on_cancel")
+    return await buyer_np_service.handle_callback(request, "on_cancel", http_request.headers, await http_request.body())
 
 
 @router.post(
@@ -117,9 +124,10 @@ async def on_cancel(
     response_model=ONDCAckResponse,
 )
 async def on_track(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_TRACK_EXAMPLES),
 ) -> ONDCAckResponse:
-    return await buyer_np_service.handle_callback(request, "on_track")
+    return await buyer_np_service.handle_callback(request, "on_track", http_request.headers, await http_request.body())
 
 
 @router.post(
@@ -129,16 +137,17 @@ async def on_track(
     response_model=ONDCAckResponse,
 )
 async def on_support(
+    http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_SUPPORT_EXAMPLES),
 ) -> ONDCAckResponse:
-    return await buyer_np_service.handle_callback(request, "on_support")
+    return await buyer_np_service.handle_callback(request, "on_support", http_request.headers, await http_request.body())
 
 
 @router.get(
     "/transactions",
     tags=["3. Debug - Transaction Repository"],
     summary="List all stored protocol events",
-    description="Repository view of Buyer NP command and callback protocol events for this POC session.",
+    description="Repository view of Buyer NP command and callback protocol events.",
 )
 async def list_transactions() -> dict:
     records = buyer_np_service.list_transactions()

@@ -1,8 +1,8 @@
-# ONDC Flow — Mutual Funds (ONDC:FIS14)
+﻿# ONDC Flow â€” Mutual Funds (ONDC:FIS14)
 
 This document explains the Beckn/ONDC transaction lifecycle for **Mutual Funds** based on the official `ONDC-FIS-Specifications` branch `draft-FIS14-enhancements`.
 
-> **Note:** The retail `seller-app` repo implements a similar async ACK + callback pattern but for physical goods with logistics. MF flows use `ONDC:FIS14`, version `2.0.0`, and city code `"*"`.
+> **Note:** The retail `buyer-np-reference` repo implements a similar async ACK + callback pattern but for physical goods with logistics. MF flows use `ONDC:FIS14`, version `2.0.0`, and city code `"*"`.
 
 ---
 
@@ -11,7 +11,7 @@ This document explains the Beckn/ONDC transaction lifecycle for **Mutual Funds**
 Every ONDC API follows the same pattern:
 
 ```
-BAP                          BPP (Seller App)
+BAP                          BPP (Buyer NP)
  |                                |
  |--- POST /{action} ----------->|  (search, select, init, confirm, status)
  |<-- {"message":{"ack":"ACK"}}--|  (immediate synchronous ACK)
@@ -30,9 +30,9 @@ BAP                          BPP (Seller App)
 
 ### Purpose
 
-Buyer app discovers available mutual fund schemes. Seller app responds with a **catalog** of schemes grouped by category (Equity, Debt, Hybrid, etc.).
+Buyer app discovers available mutual fund schemes. The counterparty NP responds with a **catalog** of schemes grouped by category (Equity, Debt, Hybrid, etc.).
 
-### Request — `POST /search`
+### Request â€” `POST /search`
 
 **Source:** `fis-specs/api/components/examples/mutual-funds/search/search.json`
 
@@ -69,17 +69,17 @@ Buyer app discovers available mutual fund schemes. Seller app responds with a **
 
 | Field | Meaning |
 |-------|---------|
-| `intent.category.descriptor.code` | `MUTUAL_FUNDS` — filter for investment products |
+| `intent.category.descriptor.code` | `MUTUAL_FUNDS` â€” filter for investment products |
 | `fulfillment.agent.organization.creds` | Distributor ARN (regulatory credential) |
 | `location.city.code` | Must be `"*"` for MF (pan-India) |
 
-### Response — Immediate ACK
+### Response â€” Immediate ACK
 
 ```json
 { "message": { "ack": { "status": "ACK" } } }
 ```
 
-### Callback — `POST {bap_uri}/on_search`
+### Callback â€” `POST {bap_uri}/on_search`
 
 **Source:** `fis-specs/.../on_search/on_search.json`
 
@@ -90,7 +90,7 @@ Buyer app discovers available mutual fund schemes. Seller app responds with a **
     "catalog": {
       "descriptor": { "name": "BPP Name" },
       "providers": [{
-        "id": "sellerapp_id",
+        "id": "bpp_provider_id",
         "categories": [ /* MUTUAL_FUNDS > OPEN_ENDED > EQUITY > MIDCAP */ ],
         "items": [{
           "id": "138",
@@ -119,7 +119,7 @@ Buyer app discovers available mutual fund schemes. Seller app responds with a **
 
 Investor selects a specific scheme, investment type (LUMPSUM/SIP/REDEMPTION), and amount. BPP returns quote, existing folios, and payment options.
 
-### Request — `POST /select`
+### Request â€” `POST /select`
 
 **Source:** `fis-specs/.../select/select-lumpsum.json`
 
@@ -128,7 +128,7 @@ Investor selects a specific scheme, investment type (LUMPSUM/SIP/REDEMPTION), an
   "context": { "action": "select", "domain": "ONDC:FIS14" },
   "message": {
     "order": {
-      "provider": { "id": "sellerapp_id" },
+      "provider": { "id": "bpp_provider_id" },
       "items": [{
         "id": "12391",
         "quantity": { "selected": { "measure": { "value": "3000", "unit": "INR" } } },
@@ -153,7 +153,7 @@ Investor selects a specific scheme, investment type (LUMPSUM/SIP/REDEMPTION), an
 | `SIP` | Systematic Investment Plan |
 | `REDEMPTION` | Withdraw units/amount |
 
-### Callback — `POST {bap_uri}/on_select`
+### Callback â€” `POST {bap_uri}/on_select`
 
 Returns:
 - Price quote / breakup
@@ -171,11 +171,11 @@ Returns:
 
 Initialize the order with final folio selection, bank mandate details, and terms. BPP returns a **draft order** with payment URL.
 
-### Request — `POST /init`
+### Request â€” `POST /init`
 
 Includes selected folio, payment method, and finalized order details from prior on_select.
 
-### Callback — `POST {bap_uri}/on_init`
+### Callback â€” `POST {bap_uri}/on_init`
 
 Returns:
 - Draft order with `state: "Created"`
@@ -205,11 +205,11 @@ Returns:
 
 Buyer app confirms the order after investor review. For redemption, includes 2FA details.
 
-### Request — `POST /confirm`
+### Request â€” `POST /confirm`
 
 Final order confirmation with payment authorization.
 
-### Callback — `POST {bap_uri}/on_confirm`
+### Callback â€” `POST {bap_uri}/on_confirm`
 
 Returns:
 - Order with `state: "Accepted"`
@@ -223,7 +223,7 @@ Returns:
 
 Poll order/payment/fulfillment status. Also used for **unsolicited** status updates from BPP (e.g., payment success, KYC form submitted).
 
-### Request — `POST /status`
+### Request â€” `POST /status`
 
 ```json
 {
@@ -232,7 +232,7 @@ Poll order/payment/fulfillment status. Also used for **unsolicited** status upda
 }
 ```
 
-### Callback — `POST {bap_uri}/on_status`
+### Callback â€” `POST {bap_uri}/on_status`
 
 Returns current order state, payment status, fulfillment progress:
 
@@ -245,7 +245,7 @@ Returns current order state, payment status, fulfillment progress:
 
 ---
 
-## 6. Additional MF APIs (Beyond Basic POC)
+## 6. Additional MF APIs
 
 | API | Purpose |
 |-----|---------|
@@ -253,7 +253,7 @@ Returns current order state, payment status, fulfillment progress:
 | `cancel` / `on_cancel` | Cancel SIP or pending order |
 | `track` / `on_track` | Track order progress |
 | `support` / `on_support` | Customer support |
-| `form` | HTML forms for KYC, payment, eSign (not a Beckn action — returned as URLs) |
+| `form` | HTML forms for KYC, payment, eSign (not a Beckn action â€” returned as URLs) |
 
 ---
 
@@ -264,7 +264,7 @@ Returns current order state, payment status, fulfillment progress:
 ```mermaid
 sequenceDiagram
     participant BAP as Buyer App
-    participant BPP as MF Seller App
+    participant BPP as MF Buyer NP
     participant RTA as RTA/MF Platform
 
     BAP->>BPP: search (MUTUAL_FUNDS)
@@ -297,7 +297,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant BAP as Buyer App
-    participant BPP as MF Seller App
+    participant BPP as MF Buyer NP
     participant KYC as KYC Provider
 
     BAP->>BPP: select (SIP, scheme, amount)
@@ -321,7 +321,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant BAP as Buyer App
-    participant BPP as MF Seller App
+    participant BPP as MF Buyer NP
 
     BAP->>BPP: select (REDEMPTION, scheme, folio, amount)
     BPP->>BAP: on_select (payout bank accounts)
@@ -337,11 +337,11 @@ sequenceDiagram
 
 ---
 
-## 8. Retail seller-app Flow Mapping (Reference)
+## 8. Retail buyer-np-reference Flow Mapping (Reference)
 
-The retail `seller-app-api` implements the same pattern for physical goods:
+The retail `buyer-np-reference-api` implements the same pattern for physical goods:
 
-| MF API | Retail seller-app route | Retail difference |
+| MF API | Retail buyer-np-reference route | Retail difference |
 |--------|------------------------|-------------------|
 | search | `POST /api/v2/client/search` | Triggers catalog build from MongoDB products |
 | select | `POST /api/v2/client/select` | Also triggers logistics search to Shiprocket |
@@ -363,4 +363,5 @@ Signature keyId="{subscriber_id}|{unique_key_id}|ed25519",algorithm="ed25519",cr
 
 Signing uses **Ed25519** with **BLAKE-512** digest of the request body. See `protocol-specs/.../Auth Header Signing and Verification.md`.
 
-The FastAPI POC **does not implement signing** — required for sandbox/production.
+The FastAPI implementation **does not implement signing** â€” required for sandbox/production.
+

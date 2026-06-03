@@ -16,14 +16,14 @@
     "message_id": "bb579fb8-cb82-4824-be12-fcbc405b6608-status-track-on_track",
     "version": "2.0.0",
     "ttl": "PT10M",
-    "bpp_id": "api.sellerapp.com",
-    "bpp_uri": "https://api.sellerapp.com/ondc",
+    "bpp_id": "api.bpp.example.com",
+    "bpp_uri": "https://api.bpp.example.com/ondc",
     "action": "on_track"
   },
   "message": {
     "tracking": {
       "id": "tracking-mf-001",
-      "url": "https://seller-app.example.com/tracking/order-mf-001",
+      "url": "https://bpp.example.com/tracking/order-mf-001",
       "status": "active"
     }
   }

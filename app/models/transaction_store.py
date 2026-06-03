@@ -3,7 +3,7 @@ from app.schemas.transaction import TransactionEventRecord
 
 
 class TransactionStore:
-    """Compatibility shim over the transaction repository abstraction."""
+    """Compatibility shim over the filesystem-backed transaction repository."""
 
     def save(self, record: TransactionEventRecord) -> TransactionEventRecord:
         return default_transaction_repository.save_event(record)

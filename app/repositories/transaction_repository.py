@@ -1,10 +1,7 @@
 from typing import Protocol
 
+from app.core.errors import DuplicateMessageError
 from app.schemas.transaction import TransactionEventRecord
-
-
-class DuplicateMessageError(ValueError):
-    """Raised when an ONDC message_id is reused."""
 
 
 class TransactionRepository(Protocol):
