@@ -168,10 +168,11 @@ class BuyerNPService:
 
         self._save_event(request, action, "callback")
         logger.info(
-            "Buyer NP callback accepted | action=%s txn=%s msg=%s",
+            "Buyer NP callback accepted and persisted | action=%s txn=%s msg=%s storage=callbacks/%s",
             action,
             request.context.transaction_id,
             request.context.message_id,
+            action,
         )
         return self.ack()
 

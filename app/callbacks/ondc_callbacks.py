@@ -38,8 +38,11 @@ async def on_search(
     http_request: Request,
     request: FIS14CallbackRequest = Body(..., openapi_examples=ON_SEARCH_EXAMPLES),
 ) -> ONDCAckResponse:
-    logger.info("Received on_search callback | txn=%s", request.context.transaction_id)
-    return await buyer_np_service.handle_callback(request, "on_search", http_request.headers, await http_request.body())
+    raw_body = await http_request.body()
+    logger.info("Received on_search callback | txn=%s msg=%s", request.context.transaction_id, request.context.message_id)
+    logger.info("Received on_search callback context | context=%s", request.context.model_dump())
+    logger.info("Received on_search callback payload | payload=%s", request.model_dump(mode="json"))
+    return await buyer_np_service.handle_callback(request, "on_search", http_request.headers, raw_body)
 
 
 @workbench_alias_router.post(

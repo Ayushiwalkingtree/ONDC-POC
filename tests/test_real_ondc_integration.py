@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from app.schemas.ondc import FIS14ProtocolRequest
 from app.services.buyer_np_service import BuyerNPService
 from app.services.file_storage_service import FileStorageService
+from app.services.ondc_service import ONDCService
 from app.services.outbound_http_client import OutboundHTTPResponse
 from app.services.registry_service import RegistrySubscriber
 from app.services.signing_service import SigningService
@@ -318,3 +319,53 @@ def test_command_uuid_plus_suffix_fails_before_outbound_dispatch(tmp_path, field
     assert exc.value.status_code == 400
     assert exc.value.detail == f"context.{field_name} must be a valid RFC4122 UUID string"
     assert outbound_client.calls == []
+
+
+def test_mock_on_search_callback_reuses_search_transaction_and_message_id() -> None:
+    settings = make_settings()
+    settings.workbench_mode = True
+    settings.bap_id = "ondcapi.walkingtree.tech"
+    settings.bap_uri = "https://ondcapi.walkingtree.tech/ondc"
+    settings.bap_callback_uri = "https://ondcapi.walkingtree.tech/ondc"
+    signer = SigningService()
+    signer.settings = settings
+    outbound_client = MockOutboundClient()
+    service = ONDCService(signer=signer, outbound_client=outbound_client)
+    service.settings = settings
+
+    search_request = make_payload("search")
+    callback = service.build_mock_callback(search_request, "on_search")
+    context = callback["context"]
+
+    assert context["domain"] == "ONDC:FIS14"
+    assert context["action"] == "on_search"
+    assert context["bap_id"] == "ondcapi.walkingtree.tech"
+    assert context["bap_uri"] == "https://ondcapi.walkingtree.tech/ondc"
+    assert context["bpp_id"] == "workbench.ondc.tech"
+    assert context["bpp_uri"] == settings.workbench_base_url
+    assert context["transaction_id"] == search_request.context.transaction_id
+    assert context["message_id"] == search_request.context.message_id
+    assert context["timestamp"]
+    assert context["version"] == "2.0.0"
+    assert context["ttl"] == "PT10M"
+
+
+def test_mock_on_search_callback_posts_to_configured_bap_callback_url() -> None:
+    settings = make_settings()
+    settings.bap_callback_uri = "https://ondcapi.walkingtree.tech/ondc"
+    signer = SigningService()
+    signer.settings = settings
+    outbound_client = MockOutboundClient()
+    service = ONDCService(signer=signer, outbound_client=outbound_client)
+    service.settings = settings
+
+    search_request = make_payload("search")
+    response = asyncio.run(service.post_mock_callback(search_request, "on_search"))
+
+    assert response.status_code == 200
+    assert outbound_client.calls[0]["url"] == "https://ondcapi.walkingtree.tech/ondc/on_search"
+    posted_body = json.loads(outbound_client.calls[0]["body"])
+    assert posted_body["context"]["action"] == "on_search"
+    assert posted_body["context"]["transaction_id"] == search_request.context.transaction_id
+    assert posted_body["context"]["message_id"] == search_request.context.message_id
+    assert "Authorization" in outbound_client.calls[0]["headers"]
