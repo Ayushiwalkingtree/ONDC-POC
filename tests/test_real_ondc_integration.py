@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import json
 from typing import Mapping
 
 from nacl.signing import SigningKey
@@ -16,7 +17,11 @@ from app.services.verification_service import VerificationService
 class IntegrationSettings:
     subscriber_id = "buyer.example.com"
     unique_key_id = "buyer-key-1"
+    bap_id = "buyer.example.com"
+    bap_uri = "https://buyer.example.com/ondc"
+    bap_callback_uri = "https://buyer.example.com/ondc"
     bpp_id = "bpp.example.com"
+    bpp_uri = "https://bpp.example.com/ondc"
     ondc_registry_url = "https://registry.example.com/lookup"
     require_ondc_auth = True
     workbench_mode = False
@@ -123,6 +128,9 @@ def test_search_signed_outbound_request_and_verified_callback(tmp_path) -> None:
     assert registry.lookups[0] == ("bpp.example.com", None)
     assert outbound_client.calls[0]["url"] == "https://bpp.example.com/ondc/search"
     assert "Authorization" in outbound_client.calls[0]["headers"]
+    outbound_body = json.loads(outbound_client.calls[0]["body"])
+    assert outbound_body["context"]["bap_id"] == settings.bap_id
+    assert outbound_body["context"]["bap_uri"] == settings.bap_uri
     asyncio.run(verifier.verify_headers(outbound_client.calls[0]["headers"], outbound_client.calls[0]["body"]))
 
     callback_request = make_payload("on_search", "msg-on-search-1")
@@ -166,6 +174,12 @@ def test_workbench_mode_skips_registry_lookup_and_dispatches_all_commands(tmp_pa
         for action in actions
     ]
     assert all("Authorization" in call["headers"] for call in outbound_client.calls)
+    for call in outbound_client.calls:
+        outbound_body = json.loads(call["body"])
+        assert outbound_body["context"]["bap_id"] == settings.bap_id
+        assert outbound_body["context"]["bap_uri"] == settings.bap_uri
+        assert outbound_body["context"]["bpp_id"] == "workbench.ondc.tech"
+        assert outbound_body["context"]["bpp_uri"] == settings.workbench_base_url
 
 
 def test_workbench_callback_alias_routes_are_registered() -> None:

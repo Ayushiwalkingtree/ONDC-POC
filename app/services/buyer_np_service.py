@@ -49,6 +49,12 @@ class BuyerNPService:
 
         self.validator.validate_command(request, action)
         self._ensure_command_not_processed(request)
+        request = self._normalize_outbound_context(request, action)
+        logger.info(
+            "OUTBOUND CONTEXT | action=%s context=%s",
+            action,
+            request.context.model_dump(),
+        )
         body = request.model_dump_json().encode("utf-8")
 
         try:
@@ -180,6 +186,20 @@ class BuyerNPService:
             raise HTTPException(status_code=400, detail="target BPP subscriber_id is required")
         return target_subscriber_id
 
+    def _normalize_outbound_context(self, request: FIS14ProtocolRequest, action: str) -> FIS14ProtocolRequest:
+        updates: dict[str, str] = {
+            "bap_id": self.settings.bap_id,
+            "bap_uri": self.settings.bap_uri or self.settings.bap_callback_uri,
+        }
+        if self._workbench_mode_enabled():
+            if self._is_missing_or_placeholder(request.context.bpp_id):
+                updates["bpp_id"] = "workbench.ondc.tech"
+            if self._is_missing_or_placeholder(request.context.bpp_uri):
+                updates["bpp_uri"] = self.settings.workbench_base_url
+
+        normalized_context = request.context.model_copy(update=updates)
+        return request.model_copy(update={"context": normalized_context})
+
     async def _target_url(self, request: FIS14ProtocolRequest, action: str, target_subscriber_id: str) -> str:
         if self._workbench_mode_enabled():
             target_url = self._action_url(self.settings.workbench_base_url, action)
@@ -202,6 +222,18 @@ class BuyerNPService:
 
     def _workbench_mode_enabled(self) -> bool:
         return bool(getattr(self.settings, "workbench_mode", False))
+
+    @staticmethod
+    def _is_missing_or_placeholder(value: str | None) -> bool:
+        if not value or not value.strip():
+            return True
+        normalized = value.strip().lower()
+        return normalized in {
+            "api.bpp.example.com",
+            "bpp.example.com",
+            "https://api.bpp.example.com/ondc",
+            "https://bpp.example.com/ondc",
+        }
 
     def _save_response_event(self, request: FIS14ProtocolRequest, action: str, payload: dict[str, Any]) -> TransactionEventRecord:
         record = TransactionEventRecord(
