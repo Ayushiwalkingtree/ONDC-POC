@@ -13,7 +13,7 @@
     "bap_id": "api.buyerapp.com",
     "bap_uri": "https://api.buyerapp.com/ondc",
     "transaction_id": "a9aaecca-10b7-4d19-b640-b047a7c62196",
-    "message_id": "bb579fb8-cb82-4824-be12-fcbc405b6608-on-update-payment-on_update",
+    "message_id": "173a83a6-ee50-493e-b885-a77f251469fe",
     "version": "2.0.0",
     "ttl": "PT10M",
     "bpp_id": "api.bpp.example.com",

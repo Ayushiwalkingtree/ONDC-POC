@@ -11,6 +11,8 @@ class ProtocolValidationService:
 
     def validate_callback(self, request: FIS14ProtocolRequest, expected_action: str) -> None:
         self._validate_expected_action(request, expected_action)
+        if not request.context.message_id or not request.context.message_id.strip():
+            raise HTTPException(status_code=400, detail="context.message_id is required for callbacks")
         if request.context.action not in CALLBACK_ACTIONS:
             raise HTTPException(status_code=400, detail=f"{request.context.action} is not a callback action")
         command_action = expected_action.replace("on_", "", 1)

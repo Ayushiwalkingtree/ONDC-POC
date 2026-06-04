@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.schemas.ondc import generate_message_id
+
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_DIR = ROOT / "fis-specs" / "api" / "components" / "examples" / "mutual-funds"
 
@@ -50,8 +52,7 @@ def _copy(payload: dict[str, Any]) -> dict[str, Any]:
 def _unique_message_id(payload: dict[str, Any], suffix: str) -> dict[str, Any]:
     copy = _copy(payload)
     context = copy.setdefault("context", {})
-    if context.get("message_id"):
-        context["message_id"] = f"{context['message_id']}-{suffix}"
+    context["message_id"] = generate_message_id()
     return copy
 
 
@@ -61,15 +62,29 @@ def _patch_action(payload: dict[str, Any], action: str) -> dict[str, Any]:
     return copy
 
 
-SEARCH = _unique_message_id(_load("search/search.json"), "search")
-SELECT_LUMPSUM = _unique_message_id(_load("select/select-lumpsum.json"), "select-lumpsum")
-SELECT_SIP = _unique_message_id(_load("select/select-sip.json"), "select-sip")
-SELECT_REDEMPTION = _unique_message_id(_load("select/select-redemption.json"), "select-redemption")
-INIT_LUMPSUM = _unique_message_id(_load("init/init-lumpsum.json"), "init-lumpsum")
-CONFIRM_LUMPSUM = _unique_message_id(_load("confirm/confirm-lumpsum.json"), "confirm-lumpsum")
-STATUS_REQUEST = _unique_message_id(_load("status/status-request.json"), "status")
-UPDATE_PAYMENT = _unique_message_id(_load("update/update-lumpsum-new-payment.json"), "update-payment")
-UPDATE_CANCEL_SIP = _unique_message_id(_load("update/update-cancel-sip.json"), "update-cancel-sip")
+def _patch_command_action(payload: dict[str, Any], action: str) -> dict[str, Any]:
+    copy = _copy(payload)
+    context = copy.setdefault("context", {})
+    context["action"] = action
+    context.pop("message_id", None)
+    return copy
+
+
+def _command_example(payload: dict[str, Any]) -> dict[str, Any]:
+    copy = _copy(payload)
+    copy.setdefault("context", {}).pop("message_id", None)
+    return copy
+
+
+SEARCH = _command_example(_load("search/search.json"))
+SELECT_LUMPSUM = _command_example(_load("select/select-lumpsum.json"))
+SELECT_SIP = _command_example(_load("select/select-sip.json"))
+SELECT_REDEMPTION = _command_example(_load("select/select-redemption.json"))
+INIT_LUMPSUM = _command_example(_load("init/init-lumpsum.json"))
+CONFIRM_LUMPSUM = _command_example(_load("confirm/confirm-lumpsum.json"))
+STATUS_REQUEST = _command_example(_load("status/status-request.json"))
+UPDATE_PAYMENT = _command_example(_load("update/update-lumpsum-new-payment.json"))
+UPDATE_CANCEL_SIP = _command_example(_load("update/update-cancel-sip.json"))
 ON_UPDATE_PAYMENT = _unique_message_id(_load("on_update/on_update-lumpsum-new-payment.json"), "on-update-payment")
 
 ON_SEARCH = _patch_action(SEARCH, "on_search")
@@ -81,7 +96,7 @@ ON_CONFIRM_LUMPSUM = _patch_action(CONFIRM_LUMPSUM, "on_confirm")
 ON_STATUS = _patch_action(STATUS_REQUEST, "on_status")
 ON_UPDATE = _patch_action(ON_UPDATE_PAYMENT, "on_update")
 
-TRACK_REQUEST = _patch_action(STATUS_REQUEST, "track")
+TRACK_REQUEST = _patch_command_action(STATUS_REQUEST, "track")
 TRACK_REQUEST["message"] = {"order_id": STATUS_REQUEST.get("message", {}).get("order_id", "order-mf-001")}
 ON_TRACK = _patch_action(TRACK_REQUEST, "on_track")
 ON_TRACK["message"] = {
@@ -92,12 +107,12 @@ ON_TRACK["message"] = {
     }
 }
 
-CANCEL_REQUEST = _patch_action(STATUS_REQUEST, "cancel")
+CANCEL_REQUEST = _patch_command_action(STATUS_REQUEST, "cancel")
 CANCEL_REQUEST["message"] = {"order_id": "order-mf-001", "cancellation_reason_id": "buyer_requested"}
 ON_CANCEL = _patch_action(CANCEL_REQUEST, "on_cancel")
 ON_CANCEL["message"] = {"order": {"id": "order-mf-001", "state": "CANCELLED"}}
 
-SUPPORT_REQUEST = _patch_action(STATUS_REQUEST, "support")
+SUPPORT_REQUEST = _patch_command_action(STATUS_REQUEST, "support")
 SUPPORT_REQUEST["message"] = {"ref_id": "order-mf-001"}
 ON_SUPPORT = _patch_action(SUPPORT_REQUEST, "on_support")
 ON_SUPPORT["message"] = {

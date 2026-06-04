@@ -245,7 +245,7 @@ def write_environment() -> None:
             {"key": "domain", "value": "ONDC:FIS14", "enabled": True},
             {"key": "version", "value": "2.0.0", "enabled": True},
             {"key": "transaction_id", "value": ex.SEARCH["context"]["transaction_id"], "enabled": True},
-            {"key": "message_id", "value": ex.SEARCH["context"]["message_id"], "enabled": True},
+            {"key": "message_id", "value": "{{$guid}}", "enabled": True},
             {"key": "bap_id", "value": ex.SEARCH["context"]["bap_id"], "enabled": True},
             {"key": "bap_uri", "value": ex.SEARCH["context"]["bap_uri"], "enabled": True},
         ],

@@ -1,9 +1,12 @@
 import asyncio
 import base64
 import json
+import uuid
 from typing import Mapping
 
+import pytest
 from nacl.signing import SigningKey
+from fastapi import HTTPException
 
 from app.schemas.ondc import FIS14ProtocolRequest
 from app.services.buyer_np_service import BuyerNPService
@@ -80,23 +83,31 @@ def make_settings() -> IntegrationSettings:
     )
 
 
-def make_payload(action: str, message_id: str) -> FIS14ProtocolRequest:
+def make_payload(
+    action: str,
+    message_id: str | None = None,
+    transaction_id: str | None = None,
+    include_message_id: bool = True,
+) -> FIS14ProtocolRequest:
+    context = {
+        "domain": "ONDC:FIS14",
+        "location": {"country": {"code": "IND"}, "city": {"code": "*"}},
+        "timestamp": "2026-06-03T10:00:00.000Z",
+        "bap_id": "buyer.example.com",
+        "bap_uri": "https://buyer.example.com/ondc",
+        "bpp_id": "bpp.example.com",
+        "bpp_uri": "https://bpp.example.com/ondc",
+        "transaction_id": transaction_id or str(uuid.uuid4()),
+        "version": "2.0.0",
+        "ttl": "PT10M",
+        "action": action,
+    }
+    if include_message_id:
+        context["message_id"] = message_id or str(uuid.uuid4())
+
     return FIS14ProtocolRequest.model_validate(
         {
-            "context": {
-                "domain": "ONDC:FIS14",
-                "location": {"country": {"code": "IND"}, "city": {"code": "*"}},
-                "timestamp": "2026-06-03T10:00:00.000Z",
-                "bap_id": "buyer.example.com",
-                "bap_uri": "https://buyer.example.com/ondc",
-                "bpp_id": "bpp.example.com",
-                "bpp_uri": "https://bpp.example.com/ondc",
-                "transaction_id": "txn-integration-1",
-                "message_id": message_id,
-                "version": "2.0.0",
-                "ttl": "PT10M",
-                "action": action,
-            },
+            "context": context,
             "message": {"intent": {}},
         }
     )
@@ -121,7 +132,7 @@ def test_search_signed_outbound_request_and_verified_callback(tmp_path) -> None:
     )
     service.settings = settings
 
-    search_request = make_payload("search", "msg-search-1")
+    search_request = make_payload("search")
     ack = asyncio.run(service.handle_command(search_request, "search"))
 
     assert ack.message.ack.status == "ACK"
@@ -133,7 +144,7 @@ def test_search_signed_outbound_request_and_verified_callback(tmp_path) -> None:
     assert outbound_body["context"]["bap_uri"] == settings.bap_uri
     asyncio.run(verifier.verify_headers(outbound_client.calls[0]["headers"], outbound_client.calls[0]["body"]))
 
-    callback_request = make_payload("on_search", "msg-on-search-1")
+    callback_request = make_payload("on_search")
     callback_body = callback_request.model_dump_json().encode("utf-8")
     callback_headers = dict(asyncio.run(signer.build_authorization_header(callback_body)))
     callback_ack = asyncio.run(
@@ -164,7 +175,7 @@ def test_workbench_mode_skips_registry_lookup_and_dispatches_all_commands(tmp_pa
 
     actions = ("search", "select", "init", "confirm", "status", "update", "cancel", "track", "support")
     for action in actions:
-        request = make_payload(action, f"msg-workbench-{action}-1")
+        request = make_payload(action)
         ack = asyncio.run(service.handle_command(request, action))
         assert ack.message.ack.status == "ACK"
 
@@ -189,3 +200,121 @@ def test_workbench_callback_alias_routes_are_registered() -> None:
     for action in ("on_search", "on_select", "on_init", "on_confirm"):
         assert f"/{action}" in paths
         assert f"/ondc/{action}" in paths
+
+
+def test_missing_command_message_id_is_generated_before_dispatch(tmp_path) -> None:
+    settings = make_settings()
+    signer = SigningService()
+    signer.settings = settings
+    registry = MockRegistryService(settings.get_signing_public_key())
+    outbound_client = MockOutboundClient()
+
+    service = BuyerNPService(
+        repository=FileStorageService(tmp_path),
+        signer=signer,
+        registry=registry,
+        outbound_client=outbound_client,
+    )
+    service.settings = settings
+
+    request = make_payload("search", include_message_id=False)
+    ack = asyncio.run(service.handle_command(request, "search"))
+
+    assert ack.message.ack.status == "ACK"
+    outbound_body = json.loads(outbound_client.calls[0]["body"])
+    generated_message_id = outbound_body["context"]["message_id"]
+    uuid.UUID(generated_message_id)
+    stored = service.list_transactions()
+    assert any(event["message_id"] == generated_message_id for event in stored)
+
+
+def test_duplicate_explicit_command_message_id_still_returns_conflict(tmp_path) -> None:
+    settings = make_settings()
+    signer = SigningService()
+    signer.settings = settings
+    registry = MockRegistryService(settings.get_signing_public_key())
+    outbound_client = MockOutboundClient()
+
+    service = BuyerNPService(
+        repository=FileStorageService(tmp_path),
+        signer=signer,
+        registry=registry,
+        outbound_client=outbound_client,
+    )
+    service.settings = settings
+
+    request = make_payload("search")
+    asyncio.run(service.handle_command(request, "search"))
+
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(service.handle_command(request, "search"))
+
+    assert exc.value.status_code == 409
+    assert "duplicate message_id" in exc.value.detail
+
+
+def test_command_uuid_values_pass_and_outbound_payload_contains_pure_uuids(tmp_path) -> None:
+    settings = make_settings()
+    signer = SigningService()
+    signer.settings = settings
+    registry = MockRegistryService(settings.get_signing_public_key())
+    outbound_client = MockOutboundClient()
+
+    service = BuyerNPService(
+        repository=FileStorageService(tmp_path),
+        signer=signer,
+        registry=registry,
+        outbound_client=outbound_client,
+    )
+    service.settings = settings
+
+    transaction_id = str(uuid.uuid4())
+    message_id = str(uuid.uuid4())
+    request = make_payload("search", message_id=message_id, transaction_id=transaction_id)
+    ack = asyncio.run(service.handle_command(request, "search"))
+
+    assert ack.message.ack.status == "ACK"
+    outbound_body = json.loads(outbound_client.calls[0]["body"])
+    assert outbound_body["context"]["transaction_id"] == transaction_id
+    assert outbound_body["context"]["message_id"] == message_id
+    assert str(uuid.UUID(outbound_body["context"]["transaction_id"])) == transaction_id
+    assert str(uuid.UUID(outbound_body["context"]["message_id"])) == message_id
+
+
+@pytest.mark.parametrize(
+    ("field_name", "suffix"),
+    (
+        ("transaction_id", "-search"),
+        ("message_id", "-select"),
+    ),
+)
+def test_command_uuid_plus_suffix_fails_before_outbound_dispatch(tmp_path, field_name: str, suffix: str) -> None:
+    settings = make_settings()
+    signer = SigningService()
+    signer.settings = settings
+    registry = MockRegistryService(settings.get_signing_public_key())
+    outbound_client = MockOutboundClient()
+
+    service = BuyerNPService(
+        repository=FileStorageService(tmp_path),
+        signer=signer,
+        registry=registry,
+        outbound_client=outbound_client,
+    )
+    service.settings = settings
+
+    transaction_id = str(uuid.uuid4())
+    message_id = str(uuid.uuid4())
+    if field_name == "transaction_id":
+        transaction_id = f"{transaction_id}{suffix}"
+    else:
+        message_id = f"{message_id}{suffix}"
+
+    request = make_payload("search", message_id=message_id, transaction_id=transaction_id)
+
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(service.handle_command(request, "search"))
+
+    assert exc.value.status_code == 400
+    assert exc.value.detail == f"context.{field_name} must be a valid RFC4122 UUID string"
+    assert outbound_client.calls == []

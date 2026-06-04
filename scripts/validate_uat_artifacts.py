@@ -48,6 +48,14 @@ def openapi_first_example(path: str) -> dict[str, Any]:
     return first["value"]
 
 
+def comparable_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    copy = json.loads(json.dumps(payload))
+    context = copy.get("context", {})
+    if str(context.get("action", "")).startswith("on_"):
+        context.pop("message_id", None)
+    return copy
+
+
 def main() -> None:
     collection = json.loads(COLLECTION.read_text(encoding="utf-8"))
     environment = json.loads(ENVIRONMENT.read_text(encoding="utf-8"))
@@ -71,11 +79,11 @@ def main() -> None:
         file_body = json.loads(payload_file.read_text(encoding="utf-8"))
         openapi_body = openapi_first_example(path)
 
-        if postman_body != endpoint["payload"]:
+        if comparable_payload(postman_body) != comparable_payload(endpoint["payload"]):
             raise AssertionError(f"Postman body does not match generator payload for {path}")
-        if file_body != endpoint["payload"]:
+        if comparable_payload(file_body) != comparable_payload(endpoint["payload"]):
             raise AssertionError(f"Payload file does not match generator payload for {path}")
-        if openapi_body != endpoint["payload"]:
+        if comparable_payload(openapi_body) != comparable_payload(endpoint["payload"]):
             raise AssertionError(f"OpenAPI first example does not match generator payload for {path}")
 
     env_keys = {item["key"] for item in environment["values"]}

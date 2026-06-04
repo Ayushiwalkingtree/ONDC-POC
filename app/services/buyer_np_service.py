@@ -1,11 +1,12 @@
 import logging
+import uuid
 from typing import Any, Literal, Mapping
 
 from fastapi import HTTPException
 
 from app.core.config import get_settings
 from app.repositories import DuplicateMessageError, TransactionRepository, default_transaction_repository
-from app.schemas.ondc import COMMAND_ACTIONS, FIS14ProtocolRequest, ONDCAckResponse
+from app.schemas.ondc import COMMAND_ACTIONS, FIS14ProtocolRequest, ONDCAckResponse, generate_message_id
 from app.schemas.transaction import TransactionEventRecord
 from app.services.outbound_http_client import OutboundHTTPClient, outbound_http_client
 from app.services.protocol_validation import ProtocolValidationService, protocol_validation_service
@@ -47,7 +48,15 @@ class BuyerNPService:
         if action not in COMMAND_ACTIONS:
             raise HTTPException(status_code=400, detail=f"unsupported command action: {action}")
 
+        request = self._ensure_command_message_id(request, action)
+        logger.info(
+            "Incoming request | action=%s txn=%s msg=%s",
+            action,
+            request.context.transaction_id,
+            request.context.message_id,
+        )
         self.validator.validate_command(request, action)
+        self._validate_command_uuid_context(request, action)
         self._ensure_command_not_processed(request)
         request = self._normalize_outbound_context(request, action)
         logger.info(
@@ -175,7 +184,58 @@ class BuyerNPService:
             for record in self.repository.get_by_transaction_id(transaction_id)
         ]
 
+    def _ensure_command_message_id(self, request: FIS14ProtocolRequest, action: str) -> FIS14ProtocolRequest:
+        if request.context.message_id and request.context.message_id.strip():
+            return request
+
+        message_id = generate_message_id()
+        logger.info(
+            "Generated message_id | action=%s txn=%s msg=%s",
+            action,
+            request.context.transaction_id,
+            message_id,
+        )
+        context = request.context.model_copy(update={"message_id": message_id})
+        return request.model_copy(update={"context": context})
+
+    def _validate_command_uuid_context(self, request: FIS14ProtocolRequest, action: str) -> None:
+        self._validate_uuid_field("transaction_id", request.context.transaction_id, action)
+        self._validate_uuid_field("message_id", request.context.message_id, action)
+
+    @staticmethod
+    def _validate_uuid_field(field_name: str, value: str | None, action: str) -> None:
+        if not value or not value.strip():
+            logger.error(
+                "Invalid ONDC UUID | action=%s field=%s value=%s",
+                action,
+                field_name,
+                value,
+            )
+            raise HTTPException(status_code=400, detail=f"context.{field_name} must be a valid RFC4122 UUID string")
+
+        try:
+            parsed = uuid.UUID(value)
+        except ValueError as exc:
+            logger.error(
+                "Invalid ONDC UUID | action=%s field=%s value=%s",
+                action,
+                field_name,
+                value,
+            )
+            raise HTTPException(status_code=400, detail=f"context.{field_name} must be a valid RFC4122 UUID string") from exc
+
+        if value.lower() != str(parsed):
+            logger.error(
+                "Invalid ONDC UUID | action=%s field=%s value=%s",
+                action,
+                field_name,
+                value,
+            )
+            raise HTTPException(status_code=400, detail=f"context.{field_name} must be a valid RFC4122 UUID string")
+
     def _ensure_command_not_processed(self, request: FIS14ProtocolRequest) -> None:
+        if not request.context.message_id:
+            raise HTTPException(status_code=400, detail="context.message_id is required")
         existing = self.repository.get_by_message_id(request.context.message_id)
         if existing and existing.direction == "command":
             raise HTTPException(status_code=409, detail=f"duplicate message_id: {request.context.message_id}")
@@ -238,7 +298,7 @@ class BuyerNPService:
     def _save_response_event(self, request: FIS14ProtocolRequest, action: str, payload: dict[str, Any]) -> TransactionEventRecord:
         record = TransactionEventRecord(
             transaction_id=request.context.transaction_id,
-            message_id=f"{request.context.message_id}-response",
+            message_id=generate_message_id(),
             action=action,
             direction="response",
             payload=payload,

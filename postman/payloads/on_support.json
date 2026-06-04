@@ -13,12 +13,12 @@
     "bap_id": "api.buyerapp.com",
     "bap_uri": "https://api.buyerapp.com/ondc",
     "transaction_id": "a9aaecca-10b7-4d19-b640-b047a7c62196",
-    "message_id": "bb579fb8-cb82-4824-be12-fcbc405b6608-status-support-on_support",
     "version": "2.0.0",
     "ttl": "PT10M",
     "bpp_id": "api.bpp.example.com",
     "bpp_uri": "https://api.bpp.example.com/ondc",
-    "action": "on_support"
+    "action": "on_support",
+    "message_id": "b8eb8f55-adc7-46bd-b0d0-9ac3e6b4dfba"
   },
   "message": {
     "support": {

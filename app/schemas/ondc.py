@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timezone
 from typing import Any, Literal
-from uuid import uuid4
+import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -36,7 +36,7 @@ class ONDCContext(BaseModel):
     bpp_id: str | None = None
     bpp_uri: str | None = None
     transaction_id: str
-    message_id: str
+    message_id: str | None = None
     version: str
     ttl: str
     action: str
@@ -55,7 +55,7 @@ class ONDCContext(BaseModel):
             raise ValueError(f"version must be {ONDC_FIS14_VERSION}")
         return value
 
-    @field_validator("transaction_id", "message_id", "bap_id", "bap_uri", "action")
+    @field_validator("transaction_id", "bap_id", "bap_uri", "action")
     @classmethod
     def validate_required_string(cls, value: str) -> str:
         if not value or not value.strip():
@@ -143,5 +143,9 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
+def generate_message_id() -> str:
+    return str(uuid.uuid4())
+
+
 def new_message_id() -> str:
-    return str(uuid4())
+    return generate_message_id()
