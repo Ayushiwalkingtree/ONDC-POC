@@ -1,0 +1,87 @@
+{
+  "transaction_id": "a9aaecca-10b7-4d19-b640-b047a7c62196",
+  "message_id": "bb579fb8-cb82-4824-be12-fcbc405b6608-search",
+  "action": "search",
+  "direction": "command",
+  "payload": {
+    "request": {
+      "context": {
+        "domain": "ONDC:FIS14",
+        "location": {
+          "country": {
+            "code": "IND"
+          },
+          "city": {
+            "code": "*"
+          }
+        },
+        "timestamp": "2023-05-25T05:23:03.443Z",
+        "bap_id": "api.buyerapp.com",
+        "bap_uri": "https://api.buyerapp.com/ondc",
+        "bpp_id": null,
+        "bpp_uri": null,
+        "transaction_id": "a9aaecca-10b7-4d19-b640-b047a7c62196",
+        "message_id": "bb579fb8-cb82-4824-be12-fcbc405b6608-search",
+        "version": "2.0.0",
+        "ttl": "PT10M",
+        "action": "search"
+      },
+      "message": {
+        "intent": {
+          "category": {
+            "descriptor": {
+              "code": "MUTUAL_FUNDS"
+            }
+          },
+          "fulfillment": {
+            "agent": {
+              "organization": {
+                "creds": [
+                  {
+                    "id": "ARN-125784",
+                    "type": "ARN"
+                  }
+                ]
+              }
+            }
+          },
+          "tags": [
+            {
+              "display": false,
+              "descriptor": {
+                "name": "BAP Terms of Engagement",
+                "code": "BAP_TERMS"
+              },
+              "list": [
+                {
+                  "descriptor": {
+                    "name": "Static Terms (Transaction Level)",
+                    "code": "STATIC_TERMS"
+                  },
+                  "value": "https://buyerapp.com/legal/ondc:fis14/static_terms?v=0.1"
+                },
+                {
+                  "descriptor": {
+                    "name": "Offline Contract",
+                    "code": "OFFLINE_CONTRACT"
+                  },
+                  "value": "true"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "outbound": {
+      "target_subscriber_id": "api.bpp.example.com",
+      "target_url": "https://workbench.ondc.tech/api-service/ONDC:FIS14/2.1.0/seller/search",
+      "headers": {
+        "Authorization": "Signature keyId=\"ondcapi.walkingtree.tech|cbbb99f5-ec6c-4ab6-bac6-3b6114c41664|ed25519\",algorithm=\"ed25519\",created=\"1780554535\",expires=\"1780554835\",headers=\"(created) (expires) digest\",signature=\"oHDvauFTEyMtk7ZqKWlN8ALgsnrFes37xFrSzTQHcHlozMIEty9AB2rcxoVg8GZon3iQYIv2bMpUBxavHapIDw==\"",
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  "created_at": "2026-06-04T06:28:55.922536Z",
+  "updated_at": "2026-06-04T06:28:55.922536Z"
+}

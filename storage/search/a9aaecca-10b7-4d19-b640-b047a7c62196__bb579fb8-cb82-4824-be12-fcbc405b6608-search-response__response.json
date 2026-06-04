@@ -1,0 +1,35 @@
+{
+  "transaction_id": "a9aaecca-10b7-4d19-b640-b047a7c62196",
+  "message_id": "bb579fb8-cb82-4824-be12-fcbc405b6608-search-response",
+  "action": "search",
+  "direction": "response",
+  "payload": {
+    "target_subscriber_id": "api.bpp.example.com",
+    "target_url": "https://workbench.ondc.tech/api-service/ONDC:FIS14/2.1.0/seller/search",
+    "status_code": 200,
+    "headers": {
+      "server": "nginx/1.27.4",
+      "date": "Thu, 04 Jun 2026 06:28:55 GMT",
+      "content-type": "application/json; charset=utf-8",
+      "content-length": "239",
+      "connection": "keep-alive",
+      "x-powered-by": "Express",
+      "x-request-id": "swq4vszah9blefw27g69xd",
+      "access-control-allow-origin": "*",
+      "etag": "W/\"ef-uJNc017E2jjOJldIDhAyoUArXXw\""
+    },
+    "body": {
+      "error": {
+        "code": "400",
+        "message": "context/bpp_id should not be empty,context/bpp_uri should not be empty \n no session or active flow found for: url - https://api.buyerapp.com/ondc which acts as a BAP"
+      },
+      "message": {
+        "ack": {
+          "status": "NACK"
+        }
+      }
+    }
+  },
+  "created_at": "2026-06-04T06:28:55.923536Z",
+  "updated_at": "2026-06-04T06:28:55.923536Z"
+}

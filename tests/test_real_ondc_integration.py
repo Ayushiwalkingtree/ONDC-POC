@@ -19,6 +19,8 @@ class IntegrationSettings:
     bpp_id = "bpp.example.com"
     ondc_registry_url = "https://registry.example.com/lookup"
     require_ondc_auth = True
+    workbench_mode = False
+    workbench_base_url = "https://workbench.ondc.tech/api-service/ONDC:FIS14/2.1.0/seller"
 
     def __init__(self, private_key: str, public_key: str) -> None:
         self._private_key = private_key
@@ -133,3 +135,43 @@ def test_search_signed_outbound_request_and_verified_callback(tmp_path) -> None:
     assert callback_ack.message.ack.status == "ACK"
     stored = service.list_transactions()
     assert {event["direction"] for event in stored} == {"command", "response", "callback"}
+
+
+def test_workbench_mode_skips_registry_lookup_and_dispatches_all_commands(tmp_path) -> None:
+    settings = make_settings()
+    settings.workbench_mode = True
+    settings.workbench_base_url = "https://workbench.ondc.tech/api-service/ONDC:FIS14/2.1.0/seller"
+    signer = SigningService()
+    signer.settings = settings
+    registry = MockRegistryService(settings.get_signing_public_key())
+    outbound_client = MockOutboundClient()
+
+    service = BuyerNPService(
+        repository=FileStorageService(tmp_path),
+        signer=signer,
+        registry=registry,
+        outbound_client=outbound_client,
+    )
+    service.settings = settings
+
+    actions = ("search", "select", "init", "confirm", "status", "update", "cancel", "track", "support")
+    for action in actions:
+        request = make_payload(action, f"msg-workbench-{action}-1")
+        ack = asyncio.run(service.handle_command(request, action))
+        assert ack.message.ack.status == "ACK"
+
+    assert registry.lookups == []
+    assert [call["url"] for call in outbound_client.calls] == [
+        f"https://workbench.ondc.tech/api-service/ONDC:FIS14/2.1.0/seller/{action}"
+        for action in actions
+    ]
+    assert all("Authorization" in call["headers"] for call in outbound_client.calls)
+
+
+def test_workbench_callback_alias_routes_are_registered() -> None:
+    from app.main import app
+
+    paths = {route.path for route in app.routes}
+    for action in ("on_search", "on_select", "on_init", "on_confirm"):
+        assert f"/{action}" in paths
+        assert f"/ondc/{action}" in paths

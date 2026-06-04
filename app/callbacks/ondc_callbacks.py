@@ -19,8 +19,15 @@ from app.services.buyer_np_service import buyer_np_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ondc", tags=["2. Buyer NP Callback Receivers"])
+workbench_alias_router = APIRouter(tags=["2. Buyer NP Callback Receivers"])
 
 
+@workbench_alias_router.post(
+    "/on_search",
+    summary="on_search - Receive scheme catalog",
+    description="Workbench-compatible alias for the Buyer NP callback URI.",
+    response_model=ONDCAckResponse,
+)
 @router.post(
     "/on_search",
     summary="on_search - Receive scheme catalog",
@@ -35,6 +42,12 @@ async def on_search(
     return await buyer_np_service.handle_callback(request, "on_search", http_request.headers, await http_request.body())
 
 
+@workbench_alias_router.post(
+    "/on_select",
+    summary="on_select - Receive quote + folios",
+    description="Workbench-compatible alias for the Buyer NP callback URI.",
+    response_model=ONDCAckResponse,
+)
 @router.post(
     "/on_select",
     summary="on_select - Receive quote + folios",
@@ -49,6 +62,12 @@ async def on_select(
     return await buyer_np_service.handle_callback(request, "on_select", http_request.headers, await http_request.body())
 
 
+@workbench_alias_router.post(
+    "/on_init",
+    summary="on_init - Receive draft order + payment details",
+    description="Workbench-compatible alias for the Buyer NP callback URI.",
+    response_model=ONDCAckResponse,
+)
 @router.post(
     "/on_init",
     summary="on_init - Receive draft order + payment details",
@@ -63,6 +82,12 @@ async def on_init(
     return await buyer_np_service.handle_callback(request, "on_init", http_request.headers, await http_request.body())
 
 
+@workbench_alias_router.post(
+    "/on_confirm",
+    summary="on_confirm - Receive accepted/rejected order",
+    description="Workbench-compatible alias for the Buyer NP callback URI.",
+    response_model=ONDCAckResponse,
+)
 @router.post(
     "/on_confirm",
     summary="on_confirm - Receive accepted/rejected order",

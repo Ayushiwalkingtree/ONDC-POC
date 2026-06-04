@@ -21,7 +21,12 @@ class OutboundHTTPClient:
         self.timeout_seconds = timeout_seconds
 
     async def post(self, url: str, body: bytes, headers: Mapping[str, str]) -> OutboundHTTPResponse:
-        logger.info("Sending outbound ONDC request | url=%s bytes=%s", url, len(body))
+        logger.info(
+            "Sending outbound ONDC request | url=%s bytes=%s headers=%s",
+            url,
+            len(body),
+            _redact_headers(headers),
+        )
         async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
             response = await client.post(url, content=body, headers=dict(headers))
 
@@ -32,9 +37,11 @@ class OutboundHTTPClient:
             response_body = response.text
 
         logger.info(
-            "Outbound ONDC response received | url=%s status=%s",
+            "Outbound ONDC response received | url=%s status=%s headers=%s body=%s",
             url,
             response.status_code,
+            response_headers,
+            response_body,
         )
         return OutboundHTTPResponse(
             status_code=response.status_code,
@@ -44,3 +51,11 @@ class OutboundHTTPClient:
 
 
 outbound_http_client = OutboundHTTPClient()
+
+
+def _redact_headers(headers: Mapping[str, str]) -> dict[str, str]:
+    redacted = dict(headers)
+    for key in list(redacted):
+        if key.lower() == "authorization":
+            redacted[key] = "<redacted>"
+    return redacted

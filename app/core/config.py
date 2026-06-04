@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     ondc_registry_url: str | None = None
     ondc_registry_timeout_seconds: float = 10.0
     require_ondc_auth: bool = False
+    workbench_mode: bool = False
+    workbench_base_url: str = "https://workbench.ondc.tech/api-service/ONDC:FIS14/2.1.0/seller"
 
     bap_id: str = "api.buyerapp.com"
     bap_uri: str = "https://api.buyerapp.com/ondc"

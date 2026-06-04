@@ -55,18 +55,11 @@ class BuyerNPService:
             headers = dict(await self.signer.build_authorization_header(body))
             headers["Content-Type"] = "application/json"
             target_subscriber_id = self._target_subscriber_id(request)
-            subscriber = await self.registry.lookup_subscriber(target_subscriber_id)
+            target_url = await self._target_url(request, action, target_subscriber_id)
         except (SigningNotConfiguredError, RegistryNotConfiguredError) as exc:
             logger.exception("Buyer NP command dispatch setup failed | action=%s", action)
             raise HTTPException(status_code=503, detail=str(exc)) from exc
 
-        if not subscriber.subscriber_url:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Registry lookup did not return subscriber_url for {target_subscriber_id}",
-            )
-
-        target_url = self._action_url(subscriber.subscriber_url, action)
         logger.info(
             "Buyer NP command dispatching | action=%s txn=%s msg=%s target_subscriber=%s target_url=%s",
             action,
@@ -74,6 +67,12 @@ class BuyerNPService:
             request.context.message_id,
             target_subscriber_id,
             target_url,
+        )
+        logger.info(
+            "OUTBOUND REQUEST | action=%s target_url=%s bytes=%s",
+            action,
+            target_url,
+            len(body),
         )
 
         try:
@@ -114,6 +113,12 @@ class BuyerNPService:
                 "headers": response.headers,
                 "body": response.body,
             },
+        )
+        logger.info(
+            "OUTBOUND RESPONSE | action=%s target_url=%s status=%s",
+            action,
+            target_url,
+            response.status_code,
         )
 
         if response.status_code >= 400:
@@ -174,6 +179,29 @@ class BuyerNPService:
         if not target_subscriber_id:
             raise HTTPException(status_code=400, detail="target BPP subscriber_id is required")
         return target_subscriber_id
+
+    async def _target_url(self, request: FIS14ProtocolRequest, action: str, target_subscriber_id: str) -> str:
+        if self._workbench_mode_enabled():
+            target_url = self._action_url(self.settings.workbench_base_url, action)
+            logger.info(
+                "WORKBENCH MODE ENABLED | action=%s txn=%s msg=%s target_url=%s",
+                action,
+                request.context.transaction_id,
+                request.context.message_id,
+                target_url,
+            )
+            return target_url
+
+        subscriber = await self.registry.lookup_subscriber(target_subscriber_id)
+        if not subscriber.subscriber_url:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Registry lookup did not return subscriber_url for {target_subscriber_id}",
+            )
+        return self._action_url(subscriber.subscriber_url, action)
+
+    def _workbench_mode_enabled(self) -> bool:
+        return bool(getattr(self.settings, "workbench_mode", False))
 
     def _save_response_event(self, request: FIS14ProtocolRequest, action: str, payload: dict[str, Any]) -> TransactionEventRecord:
         record = TransactionEventRecord(
